@@ -29,7 +29,7 @@ def artifact_remove(raw, print_all=False, print_psd=False, print_res=False, prin
     raw_filt = raw.copy()       # Cria-se as cópias do sinal que serão utilizadas
     raw_reconst = raw.copy()
     
-    raw_filt.filter(l_freq=8, h_freq=30)     # aplica-se um filtro
+    raw_filt.filter(l_freq=1, h_freq=None)     # aplica-se um filtro
     
     # Criação do objeto de ICA
     ica = ICA(n_components=n_comp, method='fastica')
