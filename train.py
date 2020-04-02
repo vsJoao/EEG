@@ -61,32 +61,50 @@ n_samples = int(t_epoch * sfreq + 1)
 # Quantidade de vetores considerados para a extração de características
 m = 2
 
+# Intervalos de Frequencia do banco de filtros
+fb_freqs = {
+    1: [8, 12],
+    2: [12, 16],
+    3: [16, 20],
+    4: [20, 24],
+    5: [24, 28],
+    6: [28, 32]
+}
+
 # %%=====================Separação dos arquivos em classes ============================
 
 # O primeiro laço percorre os arquivos de cada um dos sujeitos
 for sbj_name in f_names_train:
     try:
         X = np.load('epoch_train/{}_epoch.npy'.format(sbj_name), allow_pickle=True).item()
+        for i in X:
+            X[i].filt(fb_freqs, sfreq)
+
     except IOError:
         X = dict()
         for sbj_idx in range(6):
 
             # Carrega o arquivo raw e o conjunto de eventos referentes a ele
             raw, eve = mods.pick_file(raw_eog_fif_loc, sbj_name, sbj_idx + 1)
+            # Do arquivo raw, retorna as epocas, após ter sido passado pelo processo de ICA
             x_temp = mods.detect_classes(raw, eve, e_dict, 3.5, 6, 0, 7, sfreq)
 
             # Tenta adicionar a epoca atual ao dicionário, se não conseguir, reinicia o dicionário
             try:
                 for i in e_dict:
-                    X[i] = np.append(X[i], x_temp[i], axis=2)
+                    X[i].add_epoch(x_temp[i].data)
             except KeyError:
                 for i in e_dict:
                     X[i] = x_temp[i]
 
         # Salva os dados epocados de cada um dos sujeitos
         mods.save_epoch('epoch_train', '{}_epoch.npy'.format(sbj_name), X)
+        X.filt(fb_freqs, sfreq)
+        for i in X:
+            X[i].filt(fb_freqs, sfreq)
 
     # %% ============== Calculo das matrizes de projeção Espacial =====================
+
     # Tenta carregar as matrizes de projeção espacial, senão calcula-as e salva no arquivo
     try:
         W = np.load('csp/{}_Wcsp.npy'.format(sbj_name), allow_pickle=True).item()
@@ -95,12 +113,10 @@ for sbj_name in f_names_train:
         print('Calculo das matrizes de projeção Espacial do sujeito {}'.format(sbj_name))
         W = dict()
 
-        # Realiza o CSP entre todas as classes possíveis
         for i_cnt, i in enumerate(e_keys[:-1]):
-            # Passa pelas classes contando a partir da classe do laço acima
             for j_cnt, j in enumerate(e_keys[i_cnt+1:]):
-                # Realiza a extração por CSP de todas as combinações possíveis de classes
-                W['{}{}'.format(i, j)] = extract.csp(X[i], X[j])
+                W['{}{}'.format(i, j)] = mods.FBCSP(X[i], X[j])
+                W['{}{}'.format(i, j)].apply()
 
         mods.save_csp('csp', '{}_Wcsp.npy'.format(sbj_name), W)
 

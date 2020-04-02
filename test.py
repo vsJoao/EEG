@@ -4,7 +4,7 @@ import numpy as np
 # ##==============================Realiza a classificação por knn============================
 
 f = np.load('features/A01T_features.npy', allow_pickle=True).item()
-features = f['lt']
+features = f['lr']
 
 # Aleatoriza o vetor de atributos
 rnd = np.arange(0, 144)
