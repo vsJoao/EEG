@@ -99,7 +99,6 @@ for sbj_name in f_names_train:
 
         # Salva os dados epocados de cada um dos sujeitos
         mods.save_epoch('epoch_train', '{}_epoch.npy'.format(sbj_name), X)
-        X.filt(fb_freqs, sfreq)
         for i in X:
             X[i].filt(fb_freqs, sfreq)
 
@@ -134,8 +133,7 @@ for sbj_name in f_names_train:
             # Passa pelas classes contando a partir da classe do laço acima
             for j_cnt, j in enumerate(e_keys[i_cnt + 1:]):
                 # Executa a extração das características em todas as combinações de classes
-                features['{}{}'.format(i, j)] = \
-                    extract.csp_features(x1=X[i], x2=X[j], w=W['{}{}'.format(i, j)], m=m)
+                features['{}{}'.format(i, j)] = W['{}{}'.format(i, j)].features_extract(m)
 
         mods.save_csp('features', '{}_features.npy'.format(sbj_name), features)
 

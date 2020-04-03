@@ -4,7 +4,7 @@ import numpy as np
 # ##==============================Realiza a classificação por knn============================
 
 f = np.load('features/A01T_features.npy', allow_pickle=True).item()
-features = f['lr']
+features = f['lf']
 
 # Aleatoriza o vetor de atributos
 rnd = np.arange(0, 144)
@@ -20,7 +20,7 @@ y_test = features[115:, -1]
 
 res = np.zeros([22])
 
-for i in range(20):
+for i in range(22):
     # Cria o objeto do classificador
     KNN_model = knn.KNeighborsClassifier(n_neighbors=i + 1)
     KNN_model.fit(x_train, y_train)

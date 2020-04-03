@@ -11,6 +11,7 @@ para análises utilizando banco de filtros FBCSP
 
 import numpy as np
 import scipy.linalg as li
+import mods
 
 # %%
 
@@ -94,19 +95,19 @@ def csp(X, Y):
     return np.real(W)
 
 
-def csp_features(x1, x2, w, m):
+def csp_features(fbcsp, w, m):
     # Gera os indices dos m primeiras e m ultimas linhas da matriz
     m_int = np.hstack((np.arange(0, m), np.arange(-m, 0)))
 
     # Calcula-se a quantidade de ensaios há dentro de uma matriz
-    n_trials = x1.shape[2]
+    n_trials = fbcsp.n_trials
 
     # Pré-aloca uma matriz de atributos
-    f1 = np.zeros([m * 2, n_trials])
+    f1 = np.zeros([(m * 2) * len(fbcsp.W), n_trials])
 
     for i in range(n_trials):
         # Calcula-se a decomposição por CSP do sinal e seleciona as linhas [m_int]
-        Z = np.dot(w, x1[:, :, i])[m_int, :]
+        Z = np.dot(w, fbcsp.epc1[:, :, i])[m_int, :]
 
         # Calcula-se a variancia dessas linhas e em seguida o seu somatório
         var_z = np.var(Z, axis=1)
