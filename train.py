@@ -47,10 +47,16 @@ sfreq = 250
 t_trial = 7.5
 
 # Instante inicial do intervalo de interesse em segundos
-t_start = 4
+t_start = 3.5
 
 # Instante final do intervalo de interesse em segundos
 t_end = 6
+
+# Instante iniciaç de aplicação da ICA
+ica_start = 0
+
+# Instante final de aplicação da ICA
+ica_end = 7
 
 # Tempo entre o iníncio e final das epocas
 t_epoch = t_end - t_start
@@ -60,6 +66,9 @@ n_samples = int(t_epoch * sfreq + 1)
 
 # Quantidade de vetores considerados para a extração de características
 m = 2
+
+# Numeros de arquivos por pessoa
+n_runs = 6
 
 # Intervalos de Frequencia do banco de filtros
 fb_freqs = {
@@ -71,23 +80,31 @@ fb_freqs = {
     6: [28, 32]
 }
 
-# %%=====================Separação dos arquivos em classes ============================
+# %%===================== Testar ou treinar ============================
+
+# ans = input('(1) para conj treino e (2) para conj teste: ')
+ans = 1
+
+# %%=============== Processamento do conj de Treino ==========================
 
 # O primeiro laço percorre os arquivos de cada um dos sujeitos
 for sbj_name in f_names_train:
+
+    if ans == '2':
+        break
+
     try:
         X = np.load('epoch_train/{}_epoch.npy'.format(sbj_name), allow_pickle=True).item()
-        for i in X:
-            X[i].filt(fb_freqs, sfreq)
 
     except IOError:
         X = dict()
-        for sbj_idx in range(6):
+        for sbj_idx in range(n_runs):
 
             # Carrega o arquivo raw e o conjunto de eventos referentes a ele
             raw, eve = mods.pick_file(raw_eog_fif_loc, sbj_name, sbj_idx + 1)
             # Do arquivo raw, retorna as epocas, após ter sido passado pelo processo de ICA
-            x_temp = mods.detect_classes(raw, eve, e_dict, 3.5, 6, 0, 7, sfreq)
+            x_temp = mods.detect_classes(
+                raw, eve, e_dict, t_start, t_end, ica_start, ica_end, sfreq, fb_freqs)
 
             # Tenta adicionar a epoca atual ao dicionário, se não conseguir, reinicia o dicionário
             try:
@@ -97,10 +114,11 @@ for sbj_name in f_names_train:
                 for i in e_dict:
                     X[i] = x_temp[i]
 
-        # Salva os dados epocados de cada um dos sujeitos
-        mods.save_epoch('epoch_train', '{}_epoch.npy'.format(sbj_name), X)
+        # Filtra e salva os dados epocados de cada um dos sujeitos
         for i in X:
-            X[i].filt(fb_freqs, sfreq)
+            X[i].filt()
+
+        mods.save_epoch('epoch_train', '{}_epoch.npy'.format(sbj_name), X)
 
     # %% ============== Calculo das matrizes de projeção Espacial =====================
 
@@ -114,8 +132,8 @@ for sbj_name in f_names_train:
 
         for i_cnt, i in enumerate(e_keys[:-1]):
             for j_cnt, j in enumerate(e_keys[i_cnt+1:]):
-                W['{}{}'.format(i, j)] = mods.FBCSP(X[i], X[j])
-                W['{}{}'.format(i, j)].apply()
+                W['{}{}'.format(i, j)] = mods.FBCSP(X[i], X[j], m=m)
+                W['{}{}'.format(i, j)].csp_calc()
 
         mods.save_csp('csp', '{}_Wcsp.npy'.format(sbj_name), W)
 
@@ -133,8 +151,57 @@ for sbj_name in f_names_train:
             # Passa pelas classes contando a partir da classe do laço acima
             for j_cnt, j in enumerate(e_keys[i_cnt + 1:]):
                 # Executa a extração das características em todas as combinações de classes
-                features['{}{}'.format(i, j)] = W['{}{}'.format(i, j)].features_extract(m)
+                features['{}{}'.format(i, j)] = W['{}{}'.format(i, j)].generate_train_features()
 
         mods.save_csp('features', '{}_features.npy'.format(sbj_name), features)
 
+
+# %%=================== Processamento do conj de Teste ==========================
+
+for id, sbj_name in enumerate(f_names_test):
+
+    # Se a resposta indicar para o processamento de teste, pula o processamento de treino
+    if ans == '1':
+        break
+
+    # Tenta carregar a matriz de projeção espacial
+    try:
+        W = np.load('csp/{}_Wcsp.npy'.format(f_names_train[id]), allow_pickle=True).item()
+    except IOError:
+        print('Não foram encontradas as matrizes de projeção espacial desse sujeito {}'.format(sbj_name))
+        break
+
+    # Tenta carregar o conjunto de características do sujeito
+    try:
+        features = np.load('features/{}_features.npy'.format(f_names_train[id]), allow_pickle=True).item()
+    except IOError:
+        print('Não foram encontradas as matrizes de características do sujeito {}'.format(sbj_name))
+        break
+
+    for sbj_idx in range(n_runs):
+
+        # Carrega o arquivo raw e o conjunto de eventos referentes a ele
+        raw, eve = mods.pick_file(raw_eog_fif_loc, sbj_name, sbj_idx + 1)
+
+
+
+
+
+
 print('fim')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
