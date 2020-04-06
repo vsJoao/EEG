@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import matplotlib.pyplot as plt
+import sklearn.neighbors as knn
 import numpy as np
 import numpy.matlib
 
@@ -7,6 +8,7 @@ import extract
 import mods
 import os
 import mne
+from artifact_remove import artifact_remove
 
 # import dataset_arrangement as dta
 # import time
@@ -83,7 +85,7 @@ fb_freqs = {
 # %%===================== Testar ou treinar ============================
 
 # ans = input('(1) para conj treino e (2) para conj teste: ')
-ans = 1
+ans = '2'
 
 # %%=============== Processamento do conj de Treino ==========================
 
@@ -158,50 +160,84 @@ for sbj_name in f_names_train:
 
 # %%=================== Processamento do conj de Teste ==========================
 
-for id, sbj_name in enumerate(f_names_test):
+for s_id, sbj_name in enumerate(f_names_test):
 
-    # Se a resposta indicar para o processamento de teste, pula o processamento de treino
-    if ans == '1':
-        break
-
-    # Tenta carregar a matriz de projeção espacial
     try:
-        W = np.load('csp/{}_Wcsp.npy'.format(f_names_train[id]), allow_pickle=True).item()
-    except IOError:
-        print('Não foram encontradas as matrizes de projeção espacial desse sujeito {}'.format(sbj_name))
-        break
+        X = np.load('epoch_test/{}_epoch.npy'.format(sbj_name), allow_pickle=True).item()
+    except FileNotFoundError:
+        X = dict()
+        for sbj_idx in range(n_runs):
+            # Carrega o arquivo raw e o conjunto de eventos referentes a ele
+            raw, eve = mods.pick_file(raw_eog_fif_loc, sbj_name, sbj_idx + 1)
 
-    # Tenta carregar o conjunto de características do sujeito
+            # Separa o arquivo em epocas e aplica o ica
+            x_temp = mods.detect_classes(
+                raw, eve, e_dict, t_start, t_end, ica_start, ica_end, sfreq, fb_freqs)
+
+            # Tenta adicionar a epoca atual ao dicionário, se não conseguir, reinicia o dicionário
+            try:
+                for i in e_dict:
+                    X[i].add_epoch(x_temp[i].data)
+            except KeyError:
+                for i in e_dict:
+                    X[i] = x_temp[i]
+
+            # Filtra e salva os dados epocados de cada um dos sujeitos
+            for i in X:
+                X[i].filt()
+            mods.save_epoch('epoch_test', '{}_epoch.npy'.format(sbj_name), X)
+
+    Wfb = np.load('csp/{}_Wcsp.npy'.format(f_names_train[s_id]), allow_pickle=True).item()
+
     try:
-        features = np.load('features/{}_features.npy'.format(f_names_train[id]), allow_pickle=True).item()
-    except IOError:
-        print('Não foram encontradas as matrizes de características do sujeito {}'.format(sbj_name))
-        break
+        f = np.load('features_test/{}_features.npy'.format(sbj_name), allow_pickle=True).item()
+    except FileNotFoundError:
+        f = dict()
 
-    for sbj_idx in range(n_runs):
+        for i_cnt, i in enumerate(e_keys[:-1]):
+            for j_cnt, j in enumerate(e_keys[i_cnt + 1:]):
 
-        # Carrega o arquivo raw e o conjunto de eventos referentes a ele
-        raw, eve = mods.pick_file(raw_eog_fif_loc, sbj_name, sbj_idx + 1)
+                print('carregando: ', sbj_name, '{}{}'.format(i, j))
 
+                for n in range(X[i].data.shape[2]):
+                    f1_temp = \
+                        np.append(Wfb['{}{}'.format(i, j)].csp_feature(X[i], n).transpose(), [[e_dict[i]]], axis=1)
+                    try:
+                        f1 = np.append(f1, f1_temp, axis=0)
+                    except NameError:
+                        f1 = f1_temp
 
+                for n in range(X[j].data.shape[2]):
+                    f2_temp = \
+                        np.append(Wfb['{}{}'.format(i, j)].csp_feature(X[j], n).transpose(), [[e_dict[j]]], axis=1)
+                    try:
+                        f2 = np.append(f2, f2_temp, axis=0)
+                    except NameError:
+                        f2 = f2_temp
 
+                f['{}{}'.format(i, j)] = np.append(f1, f2, axis=0)
+                del f1, f2
 
+        mods.save_csp('features_test', '{}_features.npy'.format(sbj_name), f)
 
+    f_train = np.load('features/{}_features.npy'.format(f_names_train[s_id]), allow_pickle=True).item()
 
+    for n_knn in range(20):
+
+        for i_cnt, i in enumerate(e_keys[:-1]):
+            for j_cnt, j in enumerate(e_keys[i_cnt + 1:]):
+
+                x_train = f_train['{}{}'.format(i, j)][:, :-1]
+                y_train = f_train['{}{}'.format(i, j)][:, -1]
+
+                x_test = f['{}{}'.format(i, j)][:, :-1]
+                y_test = f['{}{}'.format(i, j)][:, -1]
+
+                KNN_model = knn.KNeighborsClassifier(n_neighbors=n_knn+1)
+                KNN_model.fit(x_train, y_train)
+
+                y_prediction = KNN_model.predict(x_test)
+                res = np.array(y_prediction == y_test)
+
+                print(sbj_name, n_knn+1, '{}{}'.format(i, j), res.mean())
 print('fim')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

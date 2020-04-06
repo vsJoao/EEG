@@ -9,6 +9,12 @@ from artifact_remove import artifact_remove
 import dataset_arrangement as dta
 from scipy import signal
 
+"""
+O objeto Epochs possui o objetivo de guardar um conjunto de dados dentro da amostra
+especificada. Dentro é possível guardar a epoca de apenas um sinal como também de vários
+apenas um para o caso de realizar o processamento de testes
+"""
+
 
 class Epochs:
     def __init__(self, X: np.ndarray, fs, e_dict, f_bank, classe: str) -> None:
@@ -53,6 +59,13 @@ class Epochs:
                 signal.sosfilt(sos, self.data, axis=1)
 
 
+"""
+O objeto FBCSP recebe duas epocas e calcula as matrizes de projeção
+espacial para cada uma das bandas de frequencias especificadas no
+conjunto de epocas.
+"""
+
+
 class FBCSP:
     def __init__(self, epc1: Epochs, epc2: Epochs, m: int):
         self.W = dict()                 # Para cada uma das bandas de frequencia
@@ -92,7 +105,9 @@ class FBCSP:
 
         return f
 
-    def csp_feature(self, X: Epochs, epoch_idx: int = 1) -> np.ndarray:
+    # Extrai um vetor de características de um sinal recebido como parametro
+    # Utilizando os dados do objeto fbcsp
+    def csp_feature(self, X: Epochs, epoch_idx: int = 0) -> np.ndarray:
 
         # Gera os indices dos m primeiras e m ultimas linhas da matriz
         m_int = np.hstack((np.arange(0, self.m), np.arange(-self.m, 0)))
