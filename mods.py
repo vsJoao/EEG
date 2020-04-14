@@ -29,7 +29,7 @@ class Epochs:
         # Classe do conjunto de epocas
         self.e_dict = e_dict
         # Numero referente a classe do movimento
-        self.class_id = e_dict[classe]
+        self.class_id = [i for i in e_dict if e_dict[i] == classe][0]
         # Taxa de amostragem do sinal
         self.fs = fs
 
@@ -174,7 +174,7 @@ def detect_classes(raw, events, e_dict, t_start, t_end, ica_start, ica_end, sfre
     for n, i in enumerate(events[:, 0] / sfreq):
 
         # Salva a classe de movimento atual
-        class_mov = [i for i in e_dict if e_dict[i] == events[n, 2]][0]
+        class_mov = e_dict[events[n, 2]]
 
         # Coleta uma amostra de (ica_end - ica_start) segundos para análise
         raw_samp = raw.copy().pick('eeg').crop(tmin=i + ica_start, tmax=i + ica_end)
@@ -195,7 +195,7 @@ def detect_classes(raw, events, e_dict, t_start, t_end, ica_start, ica_end, sfre
                 classe=class_mov,
                 f_bank=fb_freqs,
                 e_dict=e_dict,
-                fs=sfreq
+                fs=sfreq,
             )
 
     return X
