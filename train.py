@@ -147,13 +147,16 @@ for sbj_name in f_names_train:
                 except KeyError:
                     epc_group[i] = X[k]
 
+                # Aplica os filtros no novo sinal
                 epc_group[i].filt()
 
+            # Gera as matrizes de decomposição para cada uma das classes dentro de um grupo
             for c1_cnt, c1 in enumerate(e_groups[i][:-1]):
                 for c2 in e_groups[i][c1_cnt + 1:]:
                     W['{}{}'.format(c1, c2)] = mods.FBCSP(X[c1], X[c2], m=m)
                     W['{}{}'.format(c1, c2)].csp_calc()
 
+        # Gera as matrizes de decomposição espacial para cada grupo
         for c1_cnt, c1 in enumerate(list(e_groups)[:-1]):
             for c2 in list(e_groups)[c1_cnt+1:]:
                 W['{}{}'.format(c1, c2)] = mods.FBCSP(epc_group[c1], epc_group[c2], m=m)
