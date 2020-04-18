@@ -30,15 +30,12 @@ f_names_test: list = ["A01E", "A02E", "A03E", "A05E", "A06E", "A07E", "A08E", "A
 # t - lígua
 # a - movimento das maos
 # b - movimento pés ou lingua
-e_dict = {1: 'l', 2: 'r', 3: 'f', 4: 't'}
-e_keys = []
-for i in e_dict:
-    if e_dict[i] not in e_keys:
-        e_keys.append(e_dict[i])
+# e_dict = {1: 'l', 2: 'r', 3: 'f', 4: 't'}
 
-# Os arquivos 'sorted' são apenas um conjunto de matrizes com as epocas já separadas
-# por classe, sendo um arquivo desses por sujeito
-sort_loc = "sorted_data"
+# Dicionário mostrando as classes. As chaves do dicionário devem ser
+# obrigatóriamente os ids dos eventos definidos nos arquivos
+e_dict = {1: 'l', 2: 'r', 3: 'f', 4: 't'}
+e_groups = {'a': 'lr', 'b': 'ft'}   # NÃO MEXER NESTA PORRA SE VIRA COM ELA DESSE JEITO
 
 # Os arquivos 'raw' são os sinais originais provisionados pelo dataset, mantendo
 # todas as informações iniciais (trabalha em conjunto com os arquivos de eventos)
@@ -51,7 +48,7 @@ raw_fif_loc = "raw_fif_files"
 # Frequencia de amostragem
 sfreq = 250
 
-# Tempo de interesse (tempo da trial)
+# Tempo de duração a partir do evento (tempo da trial)
 t_trial = 7.5
 
 # Instante inicial do intervalo de interesse em segundos
@@ -60,7 +57,7 @@ t_start = 3.5
 # Instante final do intervalo de interesse em segundos
 t_end = 6
 
-# Instante iniciaç de aplicação da ICA
+# Instante inicial de aplicação da ICA
 ica_start = 0
 
 # Instante final de aplicação da ICA
@@ -91,7 +88,7 @@ fb_freqs = {
 # %%===================== Testar ou treinar ============================
 
 # ans = input('(1) para conj treino e (2) para conj teste: ')
-ans = '2'
+ans = '1'
 
 # %%=============== Processamento do conj de Treino ==========================
 
@@ -116,11 +113,11 @@ for sbj_name in f_names_train:
 
             # Tenta adicionar a epoca atual ao dicionário, se não conseguir, reinicia o dicionário
             try:
-                for i in e_keys:
-                    X[i].add_epoch(x_temp[i].data)
+                for i in e_dict:
+                    X[e_dict[i]].add_epoch(x_temp[e_dict[i]].data)
             except KeyError:
-                for i in e_keys:
-                    X[i] = x_temp[i]
+                for i in e_dict:
+                    X[e_dict[i]] = x_temp[e_dict[i]]
 
         # Filtra e salva os dados epocados de cada um dos sujeitos
         for i in X:
@@ -138,10 +135,29 @@ for sbj_name in f_names_train:
         print('Calculo das matrizes de projeção Espacial do sujeito {}'.format(sbj_name))
         W = dict()
 
-        for i_cnt, i in enumerate(e_keys[:-1]):
-            for j_cnt, j in enumerate(e_keys[i_cnt+1:]):
-                W['{}{}'.format(i, j)] = mods.FBCSP(X[i], X[j], m=m)
-                W['{}{}'.format(i, j)].csp_calc()
+        epc_group = dict()
+        # Passa pelos conjuntos de classes
+        for i in e_groups:
+            # Passa por cada uma das classes desse conjunto
+            for k in e_groups[i]:
+                # Junta todas as classes que estiverem em um mesmo conjunto
+                try:
+                    epc_group[i] = \
+                        epc_group[i].concat_epoch(X[k], new_edict=e_groups, new_class=i)
+                except KeyError:
+                    epc_group[i] = X[k]
+
+                epc_group[i].filt()
+
+            for c1_cnt, c1 in enumerate(e_groups[i][:-1]):
+                for c2 in e_groups[i][c1_cnt + 1:]:
+                    W['{}{}'.format(c1, c2)] = mods.FBCSP(X[c1], X[c2], m=m)
+                    W['{}{}'.format(c1, c2)].csp_calc()
+
+        for c1_cnt, c1 in enumerate(list(e_groups)[:-1]):
+            for c2 in list(e_groups)[c1_cnt+1:]:
+                W['{}{}'.format(c1, c2)] = mods.FBCSP(epc_group[c1], epc_group[c2], m=m)
+                W['{}{}'.format(c1, c2)].csp_calc()
 
         mods.save_csp('csp', '{}_Wcsp.npy'.format(sbj_name), W)
 
@@ -201,7 +217,7 @@ for s_id, sbj_name in enumerate(f_names_test):
     try:
         f = np.load('features_test/{}_features.npy'.format(sbj_name), allow_pickle=True).item()
 
-    # Se não conseguir, irá gerar esse arquivo
+    # Se não conseguir, irá gerar esse arquivo e salvá-lo
     except FileNotFoundError:
         f = dict()
 
@@ -243,8 +259,8 @@ for s_id, sbj_name in enumerate(f_names_test):
                 x_train = f_train['{}{}'.format(i, j)][:, :-1]
                 y_train = f_train['{}{}'.format(i, j)][:, -1]
 
-                x_test = f['{}{}'.format(i, j)][:, :-1]
-                y_test = f['{}{}'.format(i, j)][:, -1]
+                x_test = f['{}{}'.format(i, j)][:, :-2]
+                y_test = f['{}{}'.format(i, j)][:, -2]
 
                 KNN_model = knn.KNeighborsClassifier(n_neighbors=n_knn+1)
                 KNN_model.fit(x_train, y_train)
