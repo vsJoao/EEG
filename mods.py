@@ -30,6 +30,8 @@ class Epochs:
         self.e_dict = e_dict
         # Taxa de amostragem do sinal
         self.fs = fs
+        # Salva o identificador da classe
+        self.classe_id = [i for i in e_dict if e_dict[i] == self.classe][0]
 
         # bloco para verificar principalmente se há mais de uma matriz de epocas
         try:
@@ -107,8 +109,8 @@ class FBCSP:
         f2 = f2.transpose()
 
         f = np.append(
-            np.append(f1, np.matlib.repmat(self.epc1.classe, f1.shape[0], 1), axis=1),
-            np.append(f2, np.matlib.repmat(self.epc2.classe, f2.shape[0], 1), axis=1),
+            np.append(f1, np.matlib.repmat(self.epc1.classe_id, f1.shape[0], 1), axis=1),
+            np.append(f2, np.matlib.repmat(self.epc2.classe_id, f2.shape[0], 1), axis=1),
             axis=0
         )
 
