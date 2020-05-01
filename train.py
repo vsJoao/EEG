@@ -9,6 +9,7 @@ import mods
 import os
 import mne
 from artifact_remove import artifact_remove
+from scipy.stats import mode
 
 # import dataset_arrangement as dta
 # import time
@@ -27,8 +28,13 @@ f_names_test: list = ["A01E", "A02E", "A03E", "A05E", "A06E", "A07E", "A08E", "A
 # r - mão direita
 # f - pés
 # t - lígua
-e_dict = {'l': 1, 'r': 2, 'f': 3, 't': 4}
-e_keys = [i for i in e_dict]
+# a - movimento das maos
+# b - movimento pés ou lingua
+e_dict = {1: 'l', 2: 'r', 3: 'f', 4: 't'}
+e_keys = []
+for i in e_dict:
+    if e_dict[i] not in e_keys:
+        e_keys.append(e_dict[i])
 
 # Os arquivos 'sorted' são apenas um conjunto de matrizes com as epocas já separadas
 # por classe, sendo um arquivo desses por sujeito
@@ -110,10 +116,10 @@ for sbj_name in f_names_train:
 
             # Tenta adicionar a epoca atual ao dicionário, se não conseguir, reinicia o dicionário
             try:
-                for i in e_dict:
+                for i in e_keys:
                     X[i].add_epoch(x_temp[i].data)
             except KeyError:
-                for i in e_dict:
+                for i in e_keys:
                     X[i] = x_temp[i]
 
         # Filtra e salva os dados epocados de cada um dos sujeitos
@@ -161,7 +167,6 @@ for sbj_name in f_names_train:
 # %%=================== Processamento do conj de Teste ==========================
 
 for s_id, sbj_name in enumerate(f_names_test):
-
     if ans == '1':
         break
 
@@ -179,10 +184,10 @@ for s_id, sbj_name in enumerate(f_names_test):
 
             # Tenta adicionar a epoca atual ao dicionário, se não conseguir, reinicia o dicionário
             try:
-                for i in e_dict:
+                for i in e_keys:
                     X[i].add_epoch(x_temp[i].data)
             except KeyError:
-                for i in e_dict:
+                for i in e_keys:
                     X[i] = x_temp[i]
 
             # Filtra e salva os dados epocados de cada um dos sujeitos
@@ -192,38 +197,43 @@ for s_id, sbj_name in enumerate(f_names_test):
 
     Wfb = np.load('csp/{}_Wcsp.npy'.format(f_names_train[s_id]), allow_pickle=True).item()
 
+    # Tenta carregar os arquivos de características de cada sujeito
     try:
         f = np.load('features_test/{}_features.npy'.format(sbj_name), allow_pickle=True).item()
+
+    # Se não conseguir, irá gerar esse arquivo
     except FileNotFoundError:
         f = dict()
 
+        # Dois primeiros laços passando pelas combinações de CSP
         for i_cnt, i in enumerate(e_keys[:-1]):
             for j_cnt, j in enumerate(e_keys[i_cnt + 1:]):
 
-                print('carregando: ', sbj_name, '{}{}'.format(i, j))
+                # Laço passando por todas as classes em um conjunto de dados
+                for k_cnt, k in enumerate(X):
 
-                for n in range(X[i].data.shape[2]):
-                    f1_temp = \
-                        np.append(Wfb['{}{}'.format(i, j)].csp_feature(X[i], n).transpose(), [[e_dict[i]]], axis=1)
-                    try:
-                        f1 = np.append(f1, f1_temp, axis=0)
-                    except NameError:
-                        f1 = f1_temp
+                    # Laço Passando por todos os sinais de um conjunto de matrizes
+                    for n in range(X[k].data.shape[2]):
 
-                for n in range(X[j].data.shape[2]):
-                    f2_temp = \
-                        np.append(Wfb['{}{}'.format(i, j)].csp_feature(X[j], n).transpose(), [[e_dict[j]]], axis=1)
-                    try:
-                        f2 = np.append(f2, f2_temp, axis=0)
-                    except NameError:
-                        f2 = f2_temp
+                        # Cálculo dos vetores de características utilizando a corrente classe de W e de X
+                        f_temp = \
+                            np.append(Wfb['{}{}'.format(i, j)].csp_feature(X[k], n).transpose(),
+                                      [[k_id for k_id in e_dict if e_dict[k_id] == k]], axis=1)
 
-                f['{}{}'.format(i, j)] = np.append(f1, f2, axis=0)
-                del f1, f2
+                        # Tenta adicionar esse vetor de características na matriz de caracteristicas
+                        try:
+                            f['{}{}'.format(i, j)] = np.append(f['{}{}'.format(i, j)], f_temp, axis=0)
+                        except (NameError, ValueError, KeyError):
+                            f['{}{}'.format(i, j)] = f_temp
 
         mods.save_csp('features_test', '{}_features.npy'.format(sbj_name), f)
 
+    # Salva as matrizes de características em cada um dos arquivos dos sujeitos
     f_train = np.load('features/{}_features.npy'.format(f_names_train[s_id]), allow_pickle=True).item()
+
+    # Variáveis para contar a média total
+    mediatotal = 0
+    contador = 0
 
     for n_knn in range(20):
 
@@ -239,8 +249,16 @@ for s_id, sbj_name in enumerate(f_names_test):
                 KNN_model = knn.KNeighborsClassifier(n_neighbors=n_knn+1)
                 KNN_model.fit(x_train, y_train)
 
-                y_prediction = KNN_model.predict(x_test)
-                res = np.array(y_prediction == y_test)
+                try:
+                    y_prediction = np.append(y_prediction, np.array([KNN_model.predict(x_test)]).T, axis=1)
+                except (IndexError, ValueError, NameError):
+                    y_prediction = np.array([KNN_model.predict(x_test)]).T
 
-                print(sbj_name, n_knn+1, '{}{}'.format(i, j), res.mean())
+        y_prediction_final = mode(y_prediction, axis=1).mode
+        res = np.array([y_prediction_final == y_test.reshape(288, 1)])
+
+        print(sbj_name, n_knn+1, res.mean())
+
+        del y_prediction
+
 print('fim')
