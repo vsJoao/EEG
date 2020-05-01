@@ -28,20 +28,20 @@ class Epochs:
         self.classe = classe
         # Classe do conjunto de epocas
         self.e_dict = e_dict
+        # Numero referente a classe do movimento
+        self.class_id = e_dict[classe]
         # Taxa de amostragem do sinal
         self.fs = fs
-        # Salva o identificador da classe
-        self.classe_id = [i for i in e_dict if e_dict[i] == self.classe][0]
 
         # bloco para verificar principalmente se há mais de uma matriz de epocas
         try:
             self.n_ch = self.data.shape[0]
             self.n_samp = self.data.shape[1]
-            self.n_trials = self.data.shape[2]
+            self.n_samp = self.data.shape[2]
         except IndexError:
             self.n_ch = self.data.shape[0]
             self.n_samp = self.data.shape[1]
-            self.n_trials = self.data.reshape(self.n_ch, self.n_samp, 1)
+            self.data = self.data.reshape(self.n_ch, self.n_samp, 1)
 
     # Adiciona uma epoca no conjunto original de dados
     def add_epoch(self, new_data: np.ndarray):
@@ -57,17 +57,6 @@ class Epochs:
 
             self.filtered['{}-{}'.format(self.f_bank[f_int][0], self.f_bank[f_int][1])] = \
                 signal.sosfilt(sos, self.data, axis=1)
-
-    def concat_epoch(self, X2, new_edict, new_class):
-        new_epoch = Epochs(
-            X=np.append(self.data, X2.data, axis=2),
-            fs=self.fs,
-            f_bank=self.f_bank,
-            e_dict=new_edict,
-            classe=new_class
-        )
-        return new_epoch
-
 
 
 """
@@ -109,8 +98,8 @@ class FBCSP:
         f2 = f2.transpose()
 
         f = np.append(
-            np.append(f1, np.matlib.repmat(self.epc1.classe_id, f1.shape[0], 1), axis=1),
-            np.append(f2, np.matlib.repmat(self.epc2.classe_id, f2.shape[0], 1), axis=1),
+            np.append(f1, np.matlib.repmat(self.epc1.class_id, f1.shape[0], 1), axis=1),
+            np.append(f2, np.matlib.repmat(self.epc2.class_id, f2.shape[0], 1), axis=1),
             axis=0
         )
 
@@ -143,7 +132,7 @@ class FBCSP:
 # =========================================================================================
 
 # Função para carregar um arquivo de gravação e retornar seus respectivos eventos e objeto raw
-def pick_file(f_loc: str, sbj: str, fnum: int) -> (mne.io.RawArray, np.ndarray):
+def pick_file(f_loc: str, sbj: str, fnum: int):
 
     # define qual arquivo de eventos será carregado
     events_f_name = os.path.join(
@@ -185,7 +174,7 @@ def detect_classes(raw, events, e_dict, t_start, t_end, ica_start, ica_end, sfre
     for n, i in enumerate(events[:, 0] / sfreq):
 
         # Salva a classe de movimento atual
-        class_mov = e_dict[events[n, 2]]
+        class_mov = [i for i in e_dict if e_dict[i] == events[n, 2]][0]
 
         # Coleta uma amostra de (ica_end - ica_start) segundos para análise
         raw_samp = raw.copy().pick('eeg').crop(tmin=i + ica_start, tmax=i + ica_end)
@@ -206,7 +195,7 @@ def detect_classes(raw, events, e_dict, t_start, t_end, ica_start, ica_end, sfre
                 classe=class_mov,
                 f_bank=fb_freqs,
                 e_dict=e_dict,
-                fs=sfreq,
+                fs=sfreq
             )
 
     return X

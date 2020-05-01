@@ -9,7 +9,6 @@ import mods
 import os
 import mne
 from artifact_remove import artifact_remove
-from scipy.stats import mode
 
 # import dataset_arrangement as dta
 # import time
@@ -28,35 +27,12 @@ f_names_test: list = ["A01E", "A02E", "A03E", "A05E", "A06E", "A07E", "A08E", "A
 # r - mão direita
 # f - pés
 # t - lígua
-# a - movimento das maos
-# b - movimento pés ou lingua
-# e_dict = {1: 'l', 2: 'r', 3: 'f', 4: 't'}
+e_dict = {'l': 1, 'r': 2, 'f': 3, 't': 4}
+e_keys = [i for i in e_dict]
 
-# Dicionário mostrando as classes. As chaves do dicionário devem ser
-# obrigatóriamente os ids dos eventos definidos nos arquivos
-e_dict = {1: 'l', 2: 'r', 3: 'f', 4: 't'}
-
-# Marca a quais classes estão relacionados cada um dos grupos
-e_groups = {'a': 'lr', 'b': 'ft'}   # NÃO MEXER NESTA PORRA SE VIRA COM ELA DESSE JEITO
-
-# Dicionário de grupos
-group_dict = {1: 'a', 2: 'b'}
-
-# Dicionário inverso dos grupos
-group_dict2 = dict(zip(group_dict.values(), group_dict.keys()))
-
-# Dicionário inverso de classes
-e_dict2 = dict(zip(e_dict.values(), e_dict.keys()))
-
-
-def identify_group_id_by_class_id(class_id) -> int:
-    clas = e_dict[class_id]
-    for gp in e_groups:
-        if clas in e_groups[gp]:
-            return group_dict2[gp]
-
-    return -1
-
+# Os arquivos 'sorted' são apenas um conjunto de matrizes com as epocas já separadas
+# por classe, sendo um arquivo desses por sujeito
+sort_loc = "sorted_data"
 
 # Os arquivos 'raw' são os sinais originais provisionados pelo dataset, mantendo
 # todas as informações iniciais (trabalha em conjunto com os arquivos de eventos)
@@ -69,7 +45,7 @@ raw_fif_loc = "raw_fif_files"
 # Frequencia de amostragem
 sfreq = 250
 
-# Tempo de duração a partir do evento (tempo da trial)
+# Tempo de interesse (tempo da trial)
 t_trial = 7.5
 
 # Instante inicial do intervalo de interesse em segundos
@@ -78,7 +54,7 @@ t_start = 3.5
 # Instante final do intervalo de interesse em segundos
 t_end = 6
 
-# Instante inicial de aplicação da ICA
+# Instante iniciaç de aplicação da ICA
 ica_start = 0
 
 # Instante final de aplicação da ICA
@@ -135,12 +111,15 @@ for sbj_name in f_names_train:
             # Tenta adicionar a epoca atual ao dicionário, se não conseguir, reinicia o dicionário
             try:
                 for i in e_dict:
-                    X[e_dict[i]].add_epoch(x_temp[e_dict[i]].data)
+                    X[i].add_epoch(x_temp[i].data)
             except KeyError:
                 for i in e_dict:
-                    X[e_dict[i]] = x_temp[e_dict[i]]
+                    X[i] = x_temp[i]
 
-        # Salva os dados epocados de cada um dos sujeitos
+        # Filtra e salva os dados epocados de cada um dos sujeitos
+        for i in X:
+            X[i].filt()
+
         mods.save_epoch('epoch_train', '{}_epoch.npy'.format(sbj_name), X)
 
     # %% ============== Calculo das matrizes de projeção Espacial =====================
@@ -153,36 +132,10 @@ for sbj_name in f_names_train:
         print('Calculo das matrizes de projeção Espacial do sujeito {}'.format(sbj_name))
         W = dict()
 
-        epc_group = dict()
-        # Passa pelos conjuntos de classes
-        for i in e_groups:
-            # Passa por cada uma das classes desse conjunto
-            for k in e_groups[i]:
-
-                # Filtra de acordo com o banco de filtros especificado
-                X[k].filt()
-
-                # Junta todas as classes que estiverem em um mesmo conjunto
-                try:
-                    epc_group[i] = \
-                        epc_group[i].concat_epoch(X[k], new_edict=group_dict, new_class=i)
-                except KeyError:
-                    epc_group[i] = X[k]
-
-                # Aplica os filtros no novo sinal
-                epc_group[i].filt()
-
-            # Gera as matrizes de decomposição para cada uma das classes dentro de um grupo
-            for c1_cnt, c1 in enumerate(e_groups[i][:-1]):
-                for c2 in e_groups[i][c1_cnt + 1:]:
-                    W['{}{}'.format(c1, c2)] = mods.FBCSP(X[c1], X[c2], m=m)
-                    W['{}{}'.format(c1, c2)].csp_calc()
-
-        # Gera as matrizes de decomposição espacial para cada grupo
-        for c1_cnt, c1 in enumerate(list(e_groups)[:-1]):
-            for c2 in list(e_groups)[c1_cnt+1:]:
-                W['{}{}'.format(c1, c2)] = mods.FBCSP(epc_group[c1], epc_group[c2], m=m)
-                W['{}{}'.format(c1, c2)].csp_calc()
+        for i_cnt, i in enumerate(e_keys[:-1]):
+            for j_cnt, j in enumerate(e_keys[i_cnt+1:]):
+                W['{}{}'.format(i, j)] = mods.FBCSP(X[i], X[j], m=m)
+                W['{}{}'.format(i, j)].csp_calc()
 
         mods.save_csp('csp', '{}_Wcsp.npy'.format(sbj_name), W)
 
@@ -193,11 +146,14 @@ for sbj_name in f_names_train:
     # Se os arquivos não existirem, então calcule-os e salve em seguida
     except IOError:
         print('Criando os vetores de caracteristicas do sujeito {}'.format(sbj_name))
-
-        # Cria as matrizes de características do sujeito
         features = dict()
-        for classes in W:
-            features[classes] = W[classes].generate_train_features()
+
+        # Realiza o CSP entre todas as classes possíveis
+        for i_cnt, i in enumerate(e_keys[:-1]):
+            # Passa pelas classes contando a partir da classe do laço acima
+            for j_cnt, j in enumerate(e_keys[i_cnt + 1:]):
+                # Executa a extração das características em todas as combinações de classes
+                features['{}{}'.format(i, j)] = W['{}{}'.format(i, j)].generate_train_features()
 
         mods.save_csp('features', '{}_features.npy'.format(sbj_name), features)
 
@@ -205,8 +161,6 @@ for sbj_name in f_names_train:
 # %%=================== Processamento do conj de Teste ==========================
 
 for s_id, sbj_name in enumerate(f_names_test):
-    if ans == '1':
-        break
 
     try:
         X = np.load('epoch_test/{}_epoch.npy'.format(sbj_name), allow_pickle=True).item()
@@ -223,124 +177,67 @@ for s_id, sbj_name in enumerate(f_names_test):
             # Tenta adicionar a epoca atual ao dicionário, se não conseguir, reinicia o dicionário
             try:
                 for i in e_dict:
-                    X[e_dict[i]].add_epoch(x_temp[e_dict[i]].data)
+                    X[i].add_epoch(x_temp[i].data)
             except KeyError:
                 for i in e_dict:
-                    X[e_dict[i]] = x_temp[e_dict[i]]
+                    X[i] = x_temp[i]
 
-        # Salva os dados epocados de cada um dos sujeitos
-        mods.save_epoch('epoch_test', '{}_epoch.npy'.format(sbj_name), X)
+            # Filtra e salva os dados epocados de cada um dos sujeitos
+            for i in X:
+                X[i].filt()
+            mods.save_epoch('epoch_test', '{}_epoch.npy'.format(sbj_name), X)
 
-    # Atenção para esta parte, é **muito** mais rápido filtrar os sinais previamente, mas isso
-    # não será possível em um sistema online
-    print('Filtrando Sinais...')
-    for i in X:
-        # Filtra os sinais de acordo com o banco de filtros especificado
-        X[i].filt()
-
-    # Carrega as matrizes de projeção espacial
     Wfb = np.load('csp/{}_Wcsp.npy'.format(f_names_train[s_id]), allow_pickle=True).item()
 
-    # Tenta carregar os arquivos de características (treino) de cada sujeito
     try:
-        f_test = np.load('features_test/{}_features.npy'.format(sbj_name), allow_pickle=True).item()
-
-    # Se não conseguir, irá gerar esse arquivo e salvá-lo
+        f = np.load('features_test/{}_features.npy'.format(sbj_name), allow_pickle=True).item()
     except FileNotFoundError:
-        f_test = dict()
-        print('Extraindo características de {}'.format(sbj_name))
+        f = dict()
 
-        # Laço passando pelas classes de separação definidas em W -> (ab, lr, ft)
-        for i in Wfb:
+        for i_cnt, i in enumerate(e_keys[:-1]):
+            for j_cnt, j in enumerate(e_keys[i_cnt + 1:]):
 
-            # Laço passando por todas as classes em um conjunto de dados
-            for k_cnt, k in enumerate(X):
-                print('Classe: {} -> {}'.format(i, k))
+                print('carregando: ', sbj_name, '{}{}'.format(i, j))
 
-                # Laço Passando por todos os sinais 'E' de um conjunto de dados X[N,T,E]
-                for n in range(X[k].data.shape[2]):
-                    print('.', end="")
-
-                    # Cálculo dos vetores de características utilizando a corrente classe de W e de X
-                    f_temp = \
-                        np.append(Wfb[i].csp_feature(X[k], n).transpose(), [[e_dict2[k]]], axis=1)
-
-                    # Tenta adicionar esse vetor de características na matriz de caracteristicas
+                for n in range(X[i].data.shape[2]):
+                    f1_temp = \
+                        np.append(Wfb['{}{}'.format(i, j)].csp_feature(X[i], n).transpose(), [[e_dict[i]]], axis=1)
                     try:
-                        f_test[i] = np.append(f_test[i], f_temp, axis=0)
-                    except (NameError, ValueError, KeyError):
-                        f_test[i] = f_temp
+                        f1 = np.append(f1, f1_temp, axis=0)
+                    except NameError:
+                        f1 = f1_temp
 
-                print(' ')
+                for n in range(X[j].data.shape[2]):
+                    f2_temp = \
+                        np.append(Wfb['{}{}'.format(i, j)].csp_feature(X[j], n).transpose(), [[e_dict[j]]], axis=1)
+                    try:
+                        f2 = np.append(f2, f2_temp, axis=0)
+                    except NameError:
+                        f2 = f2_temp
 
-        # Salva as matrizes de características em cada um dos arquivos dos sujeitos
-        mods.save_csp('features_test', '{}_features.npy'.format(sbj_name), f_test)
+                f['{}{}'.format(i, j)] = np.append(f1, f2, axis=0)
+                del f1, f2
 
-    # Carrega os vetores de características do conjunto de treino
+        mods.save_csp('features_test', '{}_features.npy'.format(sbj_name), f)
+
     f_train = np.load('features/{}_features.npy'.format(f_names_train[s_id]), allow_pickle=True).item()
 
-    # Variáveis para contar a média total
-    mediatotal = dict()
-    contador = dict()
+    for n_knn in range(20):
 
-    # variaveis para guardar os conjuntos de teste e treino
-    x_train = dict()
-    y_train = dict()
+        for i_cnt, i in enumerate(e_keys[:-1]):
+            for j_cnt, j in enumerate(e_keys[i_cnt + 1:]):
 
-    x_test = dict()
-    y_test = dict()
+                x_train = f_train['{}{}'.format(i, j)][:, :-1]
+                y_train = f_train['{}{}'.format(i, j)][:, -1]
 
-    # Dicionário para guardar cada um dos modelos de classificação (no caso 3)
-    KNN_model = dict()
+                x_test = f['{}{}'.format(i, j)][:, :-1]
+                y_test = f['{}{}'.format(i, j)][:, -1]
 
-    for i in f_train:
-        # Monta-se um classificador para cada possibilidade de classificação
-        x_train[i] = f_train[i][:, :-1]
-        y_train[i] = f_train[i][:, -1]
+                KNN_model = knn.KNeighborsClassifier(n_neighbors=n_knn+1)
+                KNN_model.fit(x_train, y_train)
 
-        x_test[i] = f_test[i][:, :-1]
-        y_test[i] = f_test[i][:, -1]
+                y_prediction = KNN_model.predict(x_test)
+                res = np.array(y_prediction == y_test)
 
-    for n_neighbors in range(1, 21):
-
-        # Testa todos os 288 vetores do conjunto de teste
-        prediction_final = list()
-        for test in range(288):
-
-            # Classifica o sinal quanto ao grupo a que pertence
-            prediction_possibilities = list()
-            for i_cnt, i in enumerate(list(e_groups)[:-1]):
-                for j in list(e_groups)[i_cnt+1:]:
-                    cl_n = '{}{}'.format(i, j)
-
-                    KNN_model[cl_n] = knn.KNeighborsClassifier(n_neighbors=n_neighbors)
-                    KNN_model[cl_n].fit(x_train[cl_n], y_train[cl_n])
-
-                    prediction_possibilities.append(KNN_model[cl_n].predict(x_test[cl_n][test, :].reshape(1, 24)))
-
-            prediction_group = mode(prediction_possibilities).mode[0]
-
-            if prediction_group == 1:
-                cl_n = 'lr'
-
-                KNN_model[cl_n] = knn.KNeighborsClassifier(n_neighbors=n_neighbors)
-                KNN_model[cl_n].fit(x_train[cl_n], y_train[cl_n])
-
-                prediction = KNN_model[cl_n].predict(x_test[cl_n][test, :].reshape(1, 24))
-
-            elif prediction_group == 2:
-                cl_n = 'ft'
-
-                KNN_model[cl_n] = knn.KNeighborsClassifier(n_neighbors=n_neighbors)
-                KNN_model[cl_n].fit(x_train[cl_n], y_train[cl_n])
-
-                prediction = KNN_model[cl_n].predict(x_test[cl_n][test, :].reshape(1, 24))
-
-            prediction_final.append(prediction)
-
-        prediction_final = np.array(prediction_final)
-        res = (prediction_final == y_test['lr'].reshape(288, 1))
-
-        print(sbj_name, n_neighbors, res.mean())
-
+                print(sbj_name, n_knn+1, '{}{}'.format(i, j), res.mean())
 print('fim')
