@@ -162,6 +162,9 @@ for sbj_name in f_names_train:
 
 for s_id, sbj_name in enumerate(f_names_test):
 
+    if ans == '1':
+        break
+
     try:
         X = np.load('epoch_test/{}_epoch.npy'.format(sbj_name), allow_pickle=True).item()
     except FileNotFoundError:
