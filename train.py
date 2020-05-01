@@ -301,10 +301,6 @@ for s_id, sbj_name in enumerate(f_names_test):
         x_test[i] = f_test[i][:, :-1]
         y_test[i] = f_test[i][:, -1]
 
-        # depois fazr um método melhor para identificar o classificador de grupos
-        if i == 'ab':
-            y_test_group = np.array([identify_group_id_by_class_id(y) for y in y_test[i]])
-
     for n_neighbors in range(1, 21):
 
         # Testa todos os 288 vetores do conjunto de teste
@@ -320,7 +316,7 @@ for s_id, sbj_name in enumerate(f_names_test):
                     KNN_model[cl_n] = knn.KNeighborsClassifier(n_neighbors=n_neighbors)
                     KNN_model[cl_n].fit(x_train[cl_n], y_train[cl_n])
 
-                    prediction_possibilities.append(KNN_model[cl_n].predict(x_test[cl_n][test].reshape(1, 24)))
+                    prediction_possibilities.append(KNN_model[cl_n].predict(x_test[cl_n][test, :].reshape(1, 24)))
 
             prediction_group = mode(prediction_possibilities).mode[0]
 
@@ -330,7 +326,7 @@ for s_id, sbj_name in enumerate(f_names_test):
                 KNN_model[cl_n] = knn.KNeighborsClassifier(n_neighbors=n_neighbors)
                 KNN_model[cl_n].fit(x_train[cl_n], y_train[cl_n])
 
-                prediction = KNN_model[cl_n].predict(x_test[cl_n][test].reshape(1, 24))
+                prediction = KNN_model[cl_n].predict(x_test[cl_n][test, :].reshape(1, 24))
 
             elif prediction_group == 2:
                 cl_n = 'ft'
@@ -338,7 +334,7 @@ for s_id, sbj_name in enumerate(f_names_test):
                 KNN_model[cl_n] = knn.KNeighborsClassifier(n_neighbors=n_neighbors)
                 KNN_model[cl_n].fit(x_train[cl_n], y_train[cl_n])
 
-                prediction = KNN_model[cl_n].predict(x_test[cl_n][test].reshape(1, 24))
+                prediction = KNN_model[cl_n].predict(x_test[cl_n][test, :].reshape(1, 24))
 
             prediction_final.append(prediction)
 
