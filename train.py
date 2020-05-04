@@ -10,6 +10,7 @@ import os
 import mne
 from artifact_remove import artifact_remove
 from scipy.stats import mode
+from sklearn import svm
 
 # import dataset_arrangement as dta
 # import time
@@ -235,30 +236,30 @@ for s_id, sbj_name in enumerate(f_names_test):
     mediatotal = 0
     contador = 0
 
-    for n_knn in range(20):
+    # for n_knn in range(20):
 
-        for i_cnt, i in enumerate(e_keys[:-1]):
-            for j_cnt, j in enumerate(e_keys[i_cnt + 1:]):
+    for i_cnt, i in enumerate(e_keys[:-1]):
+        for j_cnt, j in enumerate(e_keys[i_cnt + 1:]):
 
-                x_train = f_train['{}{}'.format(i, j)][:, :-1]
-                y_train = f_train['{}{}'.format(i, j)][:, -1]
+            x_train = f_train['{}{}'.format(i, j)][:, :-1]
+            y_train = f_train['{}{}'.format(i, j)][:, -1]
 
-                x_test = f['{}{}'.format(i, j)][:, :-1]
-                y_test = f['{}{}'.format(i, j)][:, -1]
+            x_test = f['{}{}'.format(i, j)][:, :-1]
+            y_test = f['{}{}'.format(i, j)][:, -1]
 
-                KNN_model = knn.KNeighborsClassifier(n_neighbors=n_knn+1)
-                KNN_model.fit(x_train, y_train)
+            svm_model = svm.SVC()
+            svm_model.fit(x_train, y_train)
 
-                try:
-                    y_prediction = np.append(y_prediction, np.array([KNN_model.predict(x_test)]).T, axis=1)
-                except (IndexError, ValueError, NameError):
-                    y_prediction = np.array([KNN_model.predict(x_test)]).T
+            try:
+                y_prediction = np.append(y_prediction, np.array([svm_model.predict(x_test)]).T, axis=1)
+            except (IndexError, ValueError, NameError):
+                y_prediction = np.array([svm_model.predict(x_test)]).T
 
-        y_prediction_final = mode(y_prediction, axis=1).mode
-        res = np.array([y_prediction_final == y_test.reshape(288, 1)])
+    y_prediction_final = mode(y_prediction, axis=1).mode
+    res = np.array([y_prediction_final == y_test.reshape(288, 1)])
 
-        print(sbj_name, n_knn+1, res.mean())
+    print(sbj_name, res.mean())
 
-        del y_prediction
+    del y_prediction
 
 print('fim')
