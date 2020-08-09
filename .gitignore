@@ -1,3 +1,7 @@
-
-/epoch_test/
-/features_test/
+/dataset_files/csp/
+/dataset_files/epoch_test/
+/dataset_files/epoch_train/
+/dataset_files/features/
+/dataset_files/features_test/
+/dataset_files/raw_data/
+/dataset_files/raw_fif_files/
