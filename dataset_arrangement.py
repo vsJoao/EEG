@@ -152,27 +152,27 @@ def sort_montage_eog(dataset_ch_names):
 
     # Cria a variavel que ira guardar o nome dos canais
     ch_nums = len(file)
-    ch_names = []
+    all_ch_names = []
     coord = np.zeros([342, 3])
 
     # Passa pelo arquivo linha por linha
     for ii, jj in enumerate(file):
         # Converte a primeira coluna para string e salva na lista
-        ch_names.append(file[ii][0].decode('ascii'))
+        all_ch_names.append(file[ii][0].decode('ascii'))
 
         # Converte as coordenadas para float e guarda na matriz
         for coo in range(3):
             coord[ii, coo] = float(file[ii][coo + 1])
 
     # Salva em uma matriz as posições de cada um dos canais rferenciados em 'names'
-    ch_coord = coord[np.where([ch_names[i] in dataset_ch_names for i in range(ch_nums)])[0]]
+    ch_coord = coord[np.where([all_ch_names[i] in dataset_ch_names for i in range(ch_nums)])[0]]
 
     # Salva a posição do eletrodo Nasio para referencia
-    Nz_pos = coord[np.where([ch_names[i] in ['Nz'] for i in range(ch_nums)])[0]].reshape(3)
+    Nz_pos = coord[np.where([all_ch_names[i] in ['Nz'] for i in range(ch_nums)])[0]].reshape(3)
     # Salva a posição do eletrodo lpa para referencia
-    LPA_pos = coord[np.where([ch_names[i] in ['LPA'] for i in range(ch_nums)])[0]].reshape(3)
+    LPA_pos = coord[np.where([all_ch_names[i] in ['LPA'] for i in range(ch_nums)])[0]].reshape(3)
     # Salva a posição do eletrodo rpa para referencia
-    RPA_pos = coord[np.where([ch_names[i] in ['RPA'] for i in range(ch_nums)])[0]].reshape(3)
+    RPA_pos = coord[np.where([all_ch_names[i] in ['RPA'] for i in range(ch_nums)])[0]].reshape(3)
 
     # Cria o dicionario de montagem do layout
     ch_pos = {k: v for k, v in zip(dataset_ch_names, ch_coord)}

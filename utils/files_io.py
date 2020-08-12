@@ -31,23 +31,23 @@ def pick_file(f_loc: str, sbj: str, fnum: int):
     return [raw, ev]
 
 
-def save_epoch(local, filename, file):
+def save_epoch(filepath, file):
     try:
-        try:
-            np.save(os.path.join(local, filename), file)
-        except IOError:
-            os.makedirs(local)
-            np.save(os.path.join(local, filename), file)
-    except IOError:
-        print('Não foi possível salvar {}'.format(filename))
+        if not os.path.exists(os.path.dirname(filepath)):
+            os.makedirs(os.path.dirname(filepath))
+
+        np.save(os.path.join(filepath), file)
+
+    except IOError as e:
+        raise IOError("Não foi possível salvar a época: ", e)
 
 
-def save_csp(local, filename, file):
+def save_csp(filepath, file):
     try:
-        try:
-            np.save(os.path.join(local, filename), file)
-        except IOError:
-            os.makedirs(local)
-            np.save(os.path.join(local, filename), file)
-    except IOError:
-        print('Não foi possível salvar {}'.format(filename))
+        if not os.path.exists(os.path.dirname(filepath)):
+            os.makedirs(os.path.dirname(filepath))
+
+        np.save(os.path.join(filepath), file)
+
+    except IOError as e:
+        raise IOError("Não foi possível salvar os objetos CSP: ", e)

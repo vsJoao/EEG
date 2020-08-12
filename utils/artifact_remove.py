@@ -13,10 +13,31 @@ import matplotlib.pyplot as plt
 # N - O numero de eletrodos do sinal de EEG
 
 
-def artifact_remove(raw, print_all=False, print_psd=False, print_res=False, print_overlay=False, print_ICA=False):
+def artifact_remove(
+        raw, n_comp=15, print_all=False, print_psd=False, print_res=False, print_overlay=False, print_ICA=False):
+    """ Realiza a decomposição do sinal e remove os artefatos
 
-    n_comp = raw.pick('eeg').info['nchan']
-    n_comp = 15
+    Parameters
+    ----------
+    raw: mne.RawArray
+        O sinal que será analisado para realizar a limpeza
+    n_comp: int
+        A quantidade máxima de componentes independentes que será gerada na análise do sinal
+    print_all: bool
+        Realiza a impressão de todos os gráficos intermediários
+    print_psd: bool
+        Realiza a impressão dos espectogramas das componentes independentes
+    print_res: bool
+        Imprime uma mensagem informando se havia componente a ser limpo
+    print_overlay: bool
+        Imprime um grafico com os sinais sobrepostos mostrando o resultado da limpeza
+    print_ICA: bool
+        Imprime os gráficos das componentes intependentes
+
+    """
+
+    if n_comp > raw.pick('eeg').info['nchan']:
+        n_comp = raw.pick('eeg').info['nchan']
 
     if print_all is True:
         print_psd = True
@@ -65,6 +86,7 @@ def artifact_remove(raw, print_all=False, print_psd=False, print_res=False, prin
     
     # Decide se esse sinal está ou não contaminado baseado no valor máximo
     for i, j in enumerate(a):
+        # TODO: procurar uma forma automática de conseguir esse valor
         if j > 390:
             a[i] = 1
         else:
@@ -106,20 +128,3 @@ def artifact_remove(raw, print_all=False, print_psd=False, print_res=False, prin
     # Senão possui artefatos, retorne o mesmo sinal e uma flag indicando
     # que não há artefatos
     return raw.copy(), 0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

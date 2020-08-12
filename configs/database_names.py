@@ -18,21 +18,30 @@ ch_names = ['Fz', 'FC3', 'FC1', 'FCz', 'FC2', 'FC4', 'C5', 'C3', 'C1', 'Cz', 'C2
 # t - lígua
 # a - movimento das maos
 # b - movimento pés ou lingua
-e_dict = {1: 'l', 2: 'f'}
+e_dict = {1: 'l', 2: 'r'}
 # Pega os valores de forma não duplicada
 e_classes = list()
 for val in e_dict.values():
     e_classes.append(val) if val not in e_classes else ...
+
 # Numeros de arquivos por pessoa
 n_runs = 6
 
+base_loc = "dataset_files"
+
 # Os arquivos 'sorted' são apenas um conjunto de matrizes com as epocas já separadas
 # por classe, sendo um arquivo desses por sujeito
-base_loc = "dataset_files"
 epoch_train_loc = os.path.join(base_loc, "epoch_train")
+epoch_test_loc = os.path.join(base_loc, "epoch_test")
+
+csp_loc = os.path.join(base_loc, "csp")
 
 # Os arquivos 'raw' são os sinais originais provisionados pelo dataset, mantendo
 # todas as informações iniciais (trabalha em conjunto com os arquivos de eventos)
 raw_loc = os.path.join(base_loc, "raw_data")
-
 raw_fif_loc = os.path.join(base_loc, "raw_fif_files")
+
+# Os arquivos 'features' são matrizes que guardam o conjunto de características, tanto
+# do conjunto de testes como do conjunto de treino
+features_train_loc = os.path.join(base_loc, "features_train")
+features_test_loc = os.path.join(base_loc, "features_test")
