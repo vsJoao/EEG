@@ -24,10 +24,6 @@ import numpy as np
 import os
 import mne
 
-# Carrega os arquivos de cada uma das pessoas em uma lista (Sem o sujeito 4, pois seu
-# dataset está danificado)
-list_of_subj = os.listdir(base_loc + "/originals")
-
 # nome da pasta onde está o dataset original
 pasta = "dataset_files/originals"
 
@@ -96,6 +92,9 @@ def sort() -> None:
         Frequencia de Amostragem dos dados de EEG.
 
     """
+
+    list_of_subj = os.listdir(base_loc + "/originals")
+
     for sbj in list_of_subj:  # Carrega o dataset de cada uma das pessoas
         if sbj.startswith("A04"):
             continue
@@ -189,6 +188,7 @@ def sort_montage_eog(dataset_ch_names):
 
 
 def sort_raw_fif():
+    list_of_subj = os.listdir(base_loc + "/originals")
 
     # Todos os eletrodos que serão utilizados são de eeg
     chanel = ['eeg'] * 22 + ['eog'] * 3

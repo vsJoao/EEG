@@ -18,7 +18,7 @@ ch_names = ['Fz', 'FC3', 'FC1', 'FCz', 'FC2', 'FC4', 'C5', 'C3', 'C1', 'Cz', 'C2
 # t - lígua
 # a - movimento das maos
 # b - movimento pés ou lingua
-e_dict = {1: 'l', 2: 'r'}
+e_dict = {1: 'l', 2: 'r', 3: 'f', 4: 't'}
 # Pega os valores de forma não duplicada
 e_classes = list()
 for val in e_dict.values():

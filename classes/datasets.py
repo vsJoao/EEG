@@ -24,7 +24,10 @@ class Epochs:
     # Adiciona uma epoca no conjunto original de dados
     def add_epoch(self, new_data: np.ndarray):
         self.data = np.append(self.data, new_data, axis=2)
-        self.n_trials += 1
+        try:
+            self.n_trials += new_data.shape[2]
+        except IndexError:
+            self.n_trials += 1
 
     # Aplica o filtro em todos os sinais originais
     @classmethod
