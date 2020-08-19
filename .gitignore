@@ -7,3 +7,5 @@
 /dataset_files/raw_fif_files/
 /dataset_files/features_train/
 /dataset_files_no_ICA/
+/dataset_files_fbcsp_9/
+/dataset_files_fbcsp_9_sem_ica/

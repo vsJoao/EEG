@@ -26,7 +26,6 @@ def testing_data_routine():
 
         # TODO: Corrigir a forma como pegar o conjunto de treinos dentro da área de teste
         csp_filepath = os.path.join(csp_loc, f'{f_names_train[s_id]}_Wcsp.npy')
-        features_train_filepath = os.path.join(features_train_loc, f'{f_names_train[s_id]}_features.npy')
 
         if os.path.exists(epoch_filepath):
             X = np.load(epoch_filepath, allow_pickle=True).item()
@@ -56,14 +55,10 @@ def testing_data_routine():
         Wfb = np.load(csp_filepath, allow_pickle=True).item()
 
         # Verifica se já existe um arquivo de caracteristicas de teste
-        if os.path.exists(features_test_filepath):
-            f = np.load(features_test_filepath, allow_pickle=True).item()
-
-        # Se não existir, cria
-        else:
+        if not os.path.exists(features_test_filepath):
+            # Se não existir, cria
             f = dict()
 
-            first = True
             for k, (i, j) in product(X, combinations(e_classes, 2)):
                 # k - Classes do conjunto de dados X
                 # i, j - Todas as combinações de CSP possíveis a partir das classes em e_dict
@@ -86,7 +81,3 @@ def testing_data_routine():
                         f[f'{i}{j}'] = f_temp
 
             utils.save_csp(features_test_filepath, f)
-            del f_temp, first
-
-
-    print('fim')

@@ -64,11 +64,8 @@ def training_data_routine():
 
         # ====================== Construção do vetor de caracteristicas ==================
 
-        if os.path.exists(features_filepath):
-            features = np.load(features_filepath, allow_pickle=True).item()
-
-        # Se os arquivos não existirem, então calcule-os e salve em seguida
-        else:
+        if not os.path.exists(features_filepath):
+            # Se os arquivos não existirem, então calcule-os e salve em seguida
             print('Criando os vetores de caracteristicas do sujeito {}'.format(sbj_name))
             features = dict()
 

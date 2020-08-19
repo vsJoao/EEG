@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 
 def artifact_remove(
-        raw, n_comp=15, print_all=False, print_psd=False, print_res=False, print_overlay=False, print_ICA=False):
+        raw, n_comp=22, print_all=False, print_psd=False, print_res=False, print_overlay=False, print_ICA=False):
     """ Realiza a decomposição do sinal e remove os artefatos
 
     Parameters

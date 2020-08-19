@@ -26,7 +26,8 @@ def epoch_raw_data(raw, events, e_dict, t_start, t_end, ica_start, ica_end) -> d
         raw_samp = raw.copy().pick('eeg').crop(tmin=i+ica_start, tmax=i+ica_end)
 
         # Realiza a remoção de artefatos
-        raw_clean, flag = artifact_remove(raw_samp)
+        # raw_clean, flag = artifact_remove(raw_samp)
+        raw_clean = raw_samp.copy()
 
         # Salva a epoca
         new_epc = \
