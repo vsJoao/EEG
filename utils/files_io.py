@@ -2,6 +2,9 @@ import mne
 import os
 import dataset_arrangement as dta
 import numpy as np
+from configs.database_names import *
+
+__all__ = ['pick_file', 'save_epoch', 'save_csp']
 
 
 # Função para carregar um arquivo de gravação e retornar seus respectivos eventos e objeto raw

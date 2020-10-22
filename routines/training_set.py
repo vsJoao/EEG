@@ -20,8 +20,8 @@ def training_data_routine():
     for sbj_name in f_names_train:
 
         epoch_filepath = os.path.join(epoch_train_loc, f'{sbj_name}_epoch.npy')
-        csp_filepath = os.path.join(csp_loc, f'{sbj_name}_Wcsp.npy')
-        features_filepath = os.path.join(features_train_loc, f'{sbj_name}_features.npy')
+        csp_filepath = os.path.join(csp_folder, f'{sbj_name}_Wcsp.npy')
+        features_filepath = os.path.join(features_train_folder, f'{sbj_name}_features.npy')
 
         if os.path.exists(epoch_filepath):
             X = Epochs.dict_from_filepath(epoch_filepath)
@@ -32,7 +32,7 @@ def training_data_routine():
             for sbj_idx in range(n_runs):
 
                 # Carrega o arquivo raw e o conjunto de eventos referentes a ele
-                raw, eve = utils.pick_file(raw_fif_loc, sbj_name, sbj_idx + 1)
+                raw, eve = utils.pick_file(raw_fif_folder, sbj_name, sbj_idx + 1)
                 # Do arquivo raw, retorna as epocas, após ter sido passado pelo processo de ICA
                 x_temp = utils.epoch_raw_data(
                     raw, eve, e_dict, t_start, t_end, ica_start, ica_end)

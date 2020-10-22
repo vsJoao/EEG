@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.stats import mode
 import seaborn as sns
+import os
 
 
 sns.set(style="ticks")
@@ -14,12 +15,12 @@ sns.set(style="ticks")
 
 def testing_set_classification(sbj_id="A01"):
     try:
-        f = np.load(os.path.join(features_test_loc, f"{sbj_id}E_features.npy"), allow_pickle=True).item()
-        f_train = np.load(os.path.join(features_train_loc, f"{sbj_id}T_features.npy"), allow_pickle=True).item()
+        f = np.load(os.path.join(features_test_folder, f"{sbj_id}E_features.npy"), allow_pickle=True).item()
+        f_train = np.load(os.path.join(features_train_folder, f"{sbj_id}T_features.npy"), allow_pickle=True).item()
     except FileNotFoundError as erro:
         raise FileNotFoundError(
             f"Verifique se os arquivos de caracteristicas do sujeito de id {sbj_id} "
-            f"existem nas pastas {features_test_loc} e {features_train_loc}"
+            f"existem nas pastas {features_test_folder} e {features_train_folder}"
         )
 
     first = True
@@ -66,11 +67,12 @@ def testing_set_classification(sbj_id="A01"):
     )
 
     confusion = confusion_df.to_numpy()
+    confusion_percent = confusion / 72
     pe = np.trace(confusion) / np.sum(confusion)
     po = np.dot(np.sum(confusion, axis=0), np.sum(confusion, axis=1)) / (np.sum(confusion)**2)
     kappa = (pe - po) / (1 - po)
 
-    ax = sns.heatmap(confusion_df, cmap="Blues", annot=True, linewidths=1.5)
+    ax = sns.heatmap(confusion_df, cmap="Blues", annot=confusion_percent, linewidths=1.5)
     plt.yticks(va="center")
     plt.xticks(va="center")
     plt.ylabel("Classe Real")

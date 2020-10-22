@@ -24,9 +24,6 @@ import numpy as np
 import os
 import mne
 
-# nome da pasta onde está o dataset original
-pasta = "dataset_files/originals"
-
 """
 Descrição do Dataset
 
@@ -93,13 +90,13 @@ def sort() -> None:
 
     """
 
-    list_of_subj = os.listdir(base_loc + "/originals")
+    list_of_subj = os.listdir(originals_folder)
 
     for sbj in list_of_subj:  # Carrega o dataset de cada uma das pessoas
         if sbj.startswith("A04"):
             continue
         try:
-            local = pasta + '\\' + sbj
+            local = os.path.join(originals_folder, sbj)
             file = loadmat(local)
             data = file['data']
             print("{} carregado com sucesso".format(sbj))
@@ -112,6 +109,7 @@ def sort() -> None:
         raw_trials = []
         raw_y = []
         raw_classes = []
+        sfreq = None
 
         for i in range(3, 9):  # Carrega as 6 (das 9) runs de interesse de cada pessoa
             # Carrega em variáveis as informações do dataset
@@ -130,12 +128,12 @@ def sort() -> None:
         # Após carregar todas as runs de uma pessoa, salva um arquivo com os dados dessa pessoa
         try:
             try:
-                np.savez(os.path.join(raw_loc, f"{sbj.strip('.mat')}_raw"),
+                np.savez(os.path.join(raw_folder, f"{sbj.strip('.mat')}_raw"),
                          X=raw_x, trial=raw_trials, y=raw_y,
                          classes=raw_classes, sfreq=sfreq)
             except IOError:
-                os.makedirs(raw_loc)
-                np.savez(os.path.join(raw_loc, f"{sbj.strip('.mat')}_raw"),
+                os.makedirs(raw_folder)
+                np.savez(os.path.join(raw_folder, f"{sbj.strip('.mat')}_raw"),
                          X=raw_x, trial=raw_trials, y=raw_y,
                          classes=raw_classes, sfreq=sfreq)
         except IOError:
@@ -188,7 +186,7 @@ def sort_montage_eog(dataset_ch_names):
 
 
 def sort_raw_fif():
-    list_of_subj = os.listdir(base_loc + "/originals")
+    list_of_subj = os.listdir(originals_folder)
 
     # Todos os eletrodos que serão utilizados são de eeg
     chanel = ['eeg'] * 22 + ['eog'] * 3
@@ -210,7 +208,7 @@ def sort_raw_fif():
         sbj = sbj.strip('.mat')  # Retira a extensão .mat dos arquivos
         filename = sbj + "_raw.npz"
         try:  # Tenta carregar o arquivo _raw.npz
-            local = os.path.join(raw_loc, filename)
+            local = os.path.join(raw_folder, filename)
             file = np.load(local, allow_pickle=True)
             print("{} carregado com sucesso".format(filename))
         except IOError:
@@ -232,10 +230,10 @@ def sort_raw_fif():
             # Salva os arquivos _raw.fif
             try:
                 try:
-                    raw.save(f'{raw_fif_loc}/{sbj}_{i + 1}_raw.fif')
+                    raw.save(f'{raw_fif_folder}/{sbj}_{i + 1}_raw.fif')
                 except IOError:
-                    os.makedirs(raw_fif_loc)
-                    raw.save(f'{raw_fif_loc}/{sbj}_{i + 1}_raw.fif')
+                    os.makedirs(raw_fif_folder)
+                    raw.save(f'{raw_fif_folder}/{sbj}_{i + 1}_raw.fif')
             except IOError:
                 print('Não foi possível salvar {}_{}_raw.fif'.format(sbj, str(i + 1)))
 
@@ -243,13 +241,13 @@ def sort_raw_fif():
             try:
                 try:
                     mne.write_events(
-                        f'{raw_fif_loc}/{sbj}_{i + 1}_eve.fif',
+                        f'{raw_fif_folder}/{sbj}_{i + 1}_eve.fif',
                         eve
                     )
                 except IOError:
-                    os.makedirs(raw_fif_loc)
+                    os.makedirs(raw_fif_folder)
                     mne.write_events(
-                        f'{raw_fif_loc}/{sbj}_{i + 1}_eve.fif',
+                        f'{raw_fif_folder}/{sbj}_{i + 1}_eve.fif',
                         eve
                     )
             except IOError:

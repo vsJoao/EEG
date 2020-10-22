@@ -1,11 +1,3 @@
-/dataset_files/csp/
-/dataset_files/epoch_test/
-/dataset_files/epoch_train/
-/dataset_files/features/
-/dataset_files/features_test/
-/dataset_files/raw_data/
-/dataset_files/raw_fif_files/
-/dataset_files/features_train/
-/dataset_files_no_ICA/
-/dataset_files_fbcsp_9/
-/dataset_files_fbcsp_9_sem_ica/
+/dataset_files/dataset_files_fbcsp_9/
+/dataset_files/dataset_hermes/
+/dataset_files/first_tests/

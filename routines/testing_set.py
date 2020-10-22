@@ -22,10 +22,10 @@ def testing_data_routine():
     for s_id, sbj_name in enumerate(f_names_test):
 
         epoch_filepath = os.path.join(epoch_test_loc, f'{sbj_name}_epoch.npy')
-        features_test_filepath = os.path.join(features_test_loc, f'{sbj_name}_features.npy')
+        features_test_filepath = os.path.join(features_test_folder, f'{sbj_name}_features.npy')
 
         # TODO: Corrigir a forma como pegar o conjunto de treinos dentro da área de teste
-        csp_filepath = os.path.join(csp_loc, f'{f_names_train[s_id]}_Wcsp.npy')
+        csp_filepath = os.path.join(csp_folder, f'{f_names_train[s_id]}_Wcsp.npy')
 
         if os.path.exists(epoch_filepath):
             X = np.load(epoch_filepath, allow_pickle=True).item()
@@ -35,7 +35,7 @@ def testing_data_routine():
 
             for sbj_idx in range(n_runs):
                 # Carrega o arquivo raw e o conjunto de eventos referentes a ele
-                raw, eve = utils.pick_file(raw_fif_loc, sbj_name, sbj_idx + 1)
+                raw, eve = utils.pick_file(raw_fif_folder, sbj_name, sbj_idx + 1)
 
                 # Separa o arquivo em epocas e aplica o ica
                 x_temp = utils.epoch_raw_data(
