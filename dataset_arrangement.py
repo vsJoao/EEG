@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 # %% Reorganização do Dataset
 
@@ -159,7 +157,7 @@ def sort_montage_eog(dataset_ch_names):
 
         # Converte as coordenadas para float e guarda na matriz
         for coo in range(3):
-            coord[ii, coo] = float(file[ii][coo + 1])
+            coord[ii, coo] = float(file[ii][coo + 1]) / 10
 
     # Salva em uma matriz as posições de cada um dos canais rferenciados em 'names'
     ch_coord = coord[np.where([all_ch_names[i] in dataset_ch_names for i in range(ch_nums)])[0]]
@@ -186,6 +184,8 @@ def sort_montage_eog(dataset_ch_names):
 
 
 def sort_raw_fif():
+    import matplotlib.pyplot as plt
+
     list_of_subj = os.listdir(originals_folder)
 
     # Todos os eletrodos que serão utilizados são de eeg

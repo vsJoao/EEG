@@ -61,6 +61,7 @@ def artifact_remove(
     # Imprime as componentes estimadas
     if print_ICA is True:
         ica.plot_sources(raw_filt)
+        plt.savefig('ica_sources')
     
     # %% Estimação dos Espectogramas
     
@@ -87,7 +88,7 @@ def artifact_remove(
     # Decide se esse sinal está ou não contaminado baseado no valor máximo
     for i, j in enumerate(a):
         # TODO: procurar uma forma automática de conseguir esse valor
-        if j > 390:
+        if j > 290:
             a[i] = 1
         else:
             a[i] = 0
@@ -107,8 +108,10 @@ def artifact_remove(
         if print_overlay is True:
             ica.plot_components()
             plt.show()
+            plt.savefig('components')
             ica.plot_overlay(raw_reconst, exclude=exc, start=0, stop=2500)
             plt.show()
+            plt.savefig('overlay')
         
         # Realize a exclusão desses sinais do objeto de ica
         ica.exclude = exc

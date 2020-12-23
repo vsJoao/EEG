@@ -7,8 +7,8 @@ from classes import Epochs
 from classes import FBCSP
 
 import utils
-
 import numpy as np
+
 import os
 from itertools import combinations
 

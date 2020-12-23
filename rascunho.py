@@ -7,6 +7,7 @@ import mne
 import csv
 from utils.files_io import pick_file
 from configs.database_names import *
+from utils.artifact_remove import *
 
 sns.set(style="ticks")
 
@@ -90,7 +91,10 @@ sns.set(style="ticks")
 
 """ Impressão de Sinais """
 data, eve = pick_file(f_loc=raw_fif_folder, sbj="A01T", fnum=1)
-data.plot(events=eve, n_channels=25, duration=10, scalings={'eeg': 40, 'eog': 60})
-data.plot_sensors()
+data.plot(events=None, n_channels=25, duration=10, scalings={'eeg': 40, 'eog': 50}, start=32)
+plt.savefig('antes_ica')
+raw_clean, flag = artifact_remove(data.crop(tmin=32, tmax=42), print_all=True)
+raw_clean.plot(events=None, n_channels=22, duration=10, scalings={'eeg': 40})
+plt.savefig('apos_ica')
 plt.show()
 

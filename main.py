@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import routines.training_set
 import routines.testing_set
 import routines.classification
@@ -10,7 +8,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-
 
 sns.set(style="ticks")
 
